@@ -26,6 +26,13 @@ CANDIDATE_PHONE = "704-819-1795"
 CANDIDATE_LINKEDIN = "https://www.linkedin.com/in/muhammadfaridd"
 CANDIDATE_GITHUB = "https://github.com/MuhammadFarid1990"
 CANDIDATE_WEBSITE = "https://farid-portfoli0.vercel.app"
+CANDIDATE_CITY = os.getenv("CANDIDATE_CITY", "Dallas")
+CANDIDATE_STATE = os.getenv("CANDIDATE_STATE", "TX")
+CANDIDATE_ZIP = os.getenv("CANDIDATE_ZIP", "75080")
+CANDIDATE_COUNTRY = os.getenv("CANDIDATE_COUNTRY", "United States")
+CANDIDATE_DOB = os.getenv("CANDIDATE_DOB", "")  # YYYY-MM-DD, optional
+JOB_BOARD_PASSWORD = os.getenv("JOB_BOARD_PASSWORD", "")  # used when a site forces signup
+EEOC_DECLINE = True  # auto-pick "prefer not to answer" on demographic questions
 
 # Job search targeting
 TARGET_ROLES = [
