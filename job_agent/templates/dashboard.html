@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Job Agent — {{ jobs|length }} matches</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Job Agent</h1>
+      <div class="meta">{{ jobs|length }} matches · updated {{ last_updated }}</div>
+    </div>
+    <div class="topbar-actions">
+      <button id="runNow" class="ghost">Run Search Now</button>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-num">{{ stats.total }}</div>
+      <div class="stat-label">Total found</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">{{ stats.scored_above_threshold }}</div>
+      <div class="stat-label">Scored {{ threshold }}+</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">{{ stats.applied }}</div>
+      <div class="stat-label">Applied</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">{{ stats.failed }}</div>
+      <div class="stat-label">Failed</div>
+    </div>
+  </section>
+
+  <main>
+    {% if not jobs %}
+      <div class="empty">
+        <p>No matches yet.</p>
+        <p>The agent runs at 8:00 AM and 6:00 PM, or hit <strong>Run Search Now</strong>.</p>
+      </div>
+    {% else %}
+      <ul class="joblist" id="joblist">
+        {% for j in jobs %}
+        {% set host = (j.url.split('/')[2] if j.url else '') %}
+        <li class="job" data-id="{{ j.id }}" data-status="{{ j.status }}">
+          <div class="row">
+            <input type="checkbox" class="pick" {% if j.status == 'pending' %}checked{% endif %} {% if j.status in ['applied','failed','skipped'] %}disabled{% endif %} />
+            <img class="logo" src="https://www.google.com/s2/favicons?sz=64&domain={{ host }}" alt="" onerror="this.style.visibility='hidden'" />
+            <div class="job-main">
+              <div class="job-title-row">
+                <span class="title">{{ j.title }}</span>
+                <span class="score score-{{ 'high' if j.fit_score >= 85 else 'mid' }}">{{ j.fit_score }}</span>
+              </div>
+              <div class="job-sub">
+                <span class="company">{{ j.company }}</span>
+                <span class="dot">·</span>
+                <span class="loc">{{ j.location }}</span>
+                {% if j.work_type %}<span class="badge work">{{ j.work_type }}</span>{% endif %}
+                <span class="badge platform">{{ j.platform }}</span>
+              </div>
+              <div class="reason">{{ j.fit_reason }}</div>
+              <div class="job-actions">
+                <a href="{{ j.url }}" target="_blank" rel="noopener">View job →</a>
+                <button class="link-btn toggle-cover">Cover letter</button>
+                <span class="status-pill status-{{ j.status }}">{{ j.status }}</span>
+              </div>
+              <pre class="cover hidden">{{ j.cover_letter }}</pre>
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </main>
+
+  <footer class="actionbar">
+    <div class="left">
+      <button id="selectAll" class="ghost">Select All</button>
+      <button id="deselectAll" class="ghost">Deselect All</button>
+      <span id="selCount" class="meta">0 selected</span>
+    </div>
+    <div class="right">
+      <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+      <button id="applyBtn" class="primary">Apply to Selected (0)</button>
+    </div>
+  </footer>
+
+  <script>
+    const selCount = document.getElementById('selCount');
+    const applyBtn = document.getElementById('applyBtn');
+    const progress = document.getElementById('progress');
+
+    function selectedIds() {
+      return [...document.querySelectorAll('.pick:checked:not(:disabled)')]
+        .map(cb => +cb.closest('.job').dataset.id);
+    }
+    function refreshCounts() {
+      const n = selectedIds().length;
+      selCount.textContent = n + ' selected';
+      applyBtn.textContent = 'Apply to Selected (' + n + ')';
+      applyBtn.disabled = n === 0;
+    }
+    document.querySelectorAll('.pick').forEach(cb => cb.addEventListener('change', refreshCounts));
+    document.getElementById('selectAll').onclick = () => {
+      document.querySelectorAll('.pick:not(:disabled)').forEach(cb => cb.checked = true);
+      refreshCounts();
+    };
+    document.getElementById('deselectAll').onclick = () => {
+      document.querySelectorAll('.pick:not(:disabled)').forEach(cb => cb.checked = false);
+      refreshCounts();
+    };
+    document.querySelectorAll('.toggle-cover').forEach(b => {
+      b.onclick = () => b.closest('.job-main').querySelector('.cover').classList.toggle('hidden');
+    });
+    applyBtn.onclick = async () => {
+      const ids = selectedIds();
+      if (!ids.length) return;
+      applyBtn.disabled = true;
+      const r = await fetch('/api/apply', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({job_ids: ids})
+      });
+      if (!r.ok) {
+        applyBtn.disabled = false;
+        alert('Could not start: ' + (await r.text()));
+        return;
+      }
+      pollStatus();
+    };
+    document.getElementById('runNow').onclick = async () => {
+      await fetch('/api/run-now', {method: 'POST'});
+      alert('Search started. Refresh in a couple minutes.');
+    };
+
+    async function pollStatus() {
+      const r = await fetch('/api/jobs');
+      const data = await r.json();
+      // update each row
+      data.jobs.forEach(j => {
+        const li = document.querySelector('.job[data-id="' + j.id + '"]');
+        if (!li) return;
+        li.dataset.status = j.status;
+        const pill = li.querySelector('.status-pill');
+        if (pill) {
+          pill.className = 'status-pill status-' + j.status;
+          pill.textContent = j.status;
+        }
+        if (j.status !== 'pending') {
+          const cb = li.querySelector('.pick');
+          if (cb) cb.disabled = true;
+        }
+      });
+      // progress
+      const st = data.apply_state;
+      if (st && st.total > 0) {
+        const pct = Math.round((st.done / st.total) * 100);
+        progress.style.width = pct + '%';
+      }
+      if (st && st.running) {
+        setTimeout(pollStatus, 3000);
+      } else {
+        applyBtn.disabled = selectedIds().length === 0;
+      }
+    }
+
+    refreshCounts();
+  </script>
+</body>
+</html>

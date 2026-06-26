@@ -1,0 +1,19 @@
+Muhammad Farid — MS Business Analytics and AI (UT Dallas, GPA 3.67, graduating May 2027), Graduate Certificate in Machine Learning and AI.
+
+Skills: Python, R, SQL, JavaScript, TypeScript, Node.js, TensorFlow, NLP, Computer Vision, RAG, LLMs, MCP, Agentic AI, Prompt Engineering, Deep Learning, Pandas, NumPy, Power BI, Tableau, Excel, Azure, DAX, Flask, FastAPI, React, Next.js, Streamlit, Docker, Vercel, ChromaDB, REST APIs, ROS2.
+
+Experience:
+- Data Science and AI Automation Analyst at Slick City Action Park: deployed demand forecasting with NOAA and ROLLER APIs, 70% accuracy improvement, 15% revenue increase, 23% labor cost reduction.
+- Senior Business Analyst at Charter Software: built Python/SQL pipelines with ChromaDB vector storage, Claude API automation agent.
+- Team Lead Finance Operations at MetroGuard Security.
+
+Research:
+- Safe Young Minds: ambient acoustic AI for child distress detection, YAMNet, NVIDIA Jetson, IRB submitted, co-author with Dr. Roger Malina.
+- Agents Over Oceans: AI reshoring research for US outdoor power equipment industry.
+
+Projects:
+- CreditSense AI (MCP + Claude API)
+- KindredCare AI (React + Claude API)
+- BriefRoom (Streamlit + Claude API)
+
+Contact: Muhammad.farid@utdallas.edu | 704-819-1795 | https://www.linkedin.com/in/muhammadfaridd | https://github.com/MuhammadFarid1990 | https://farid-portfoli0.vercel.app

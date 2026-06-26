@@ -1,0 +1,10 @@
+.env
+*.pyc
+__pycache__/
+job_agent.db
+logs/
+.sessions/
+resume.pdf
+*.egg-info/
+.venv/
+venv/
