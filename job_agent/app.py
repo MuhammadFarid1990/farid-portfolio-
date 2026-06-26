@@ -1,11 +1,13 @@
 """Flask dashboard. http://localhost:5000"""
 from __future__ import annotations
 
+import csv
+import io
 import logging
 import threading
 from datetime import datetime
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 from config import FLASK_HOST, FLASK_PORT, MIN_FIT_SCORE
 from db import get_jobs, init_db, stats, update_status
@@ -94,6 +96,44 @@ def api_run_now():
 @app.route("/status")
 def status():
     return jsonify({"apply_state": _apply_state, "stats": stats()})
+
+
+@app.route("/export.csv")
+def export_csv():
+    jobs = get_jobs(min_score=0)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "title",
+        "company",
+        "location",
+        "work_type",
+        "platform",
+        "fit_score",
+        "status",
+        "applied_at",
+        "fit_reason",
+        "url",
+    ])
+    for j in jobs:
+        writer.writerow([
+            j.get("title", ""),
+            j.get("company", ""),
+            j.get("location", ""),
+            j.get("work_type") or "",
+            j.get("platform", ""),
+            j.get("fit_score", 0),
+            j.get("status", ""),
+            j.get("applied_at") or "",
+            (j.get("fit_reason") or "").replace("\n", " "),
+            j.get("url", ""),
+        ])
+    fname = f"job_agent_{datetime.now().strftime('%Y-%m-%d_%H%M')}.csv"
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
 
 
 def serve() -> None:

@@ -180,6 +180,18 @@ button.primary {
 button.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: white; }
 button.ghost { background: transparent; }
 
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.ghost-link {
+  font: inherit;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+}
+.ghost-link:hover { border-color: var(--accent); }
+
 .progress-wrap {
   width: 200px;
   height: 8px;
