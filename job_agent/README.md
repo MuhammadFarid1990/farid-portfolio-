@@ -25,7 +25,8 @@ python agent.py
 * Dashboard opens at <http://localhost:5000>.
 * The pipeline runs daily at 8:00 AM and 6:00 PM (configurable in `config.py: SCHEDULE_HOURS`).
 * **Run Search Now** in the dashboard triggers a manual run.
-* **Apply to Selected** queues approved jobs for Playwright to submit, with `APPLY_DELAY_SECONDS` between each (default 45s).
+* **Auto-apply is ON by default** (`config.py: AUTO_APPLY = True`): after scoring, the agent submits every job above `MIN_FIT_SCORE` with no dashboard click. Set `AUTO_APPLY = False` if you want the human-in-the-loop "Apply to Selected" button instead.
+* `APPLY_DELAY_SECONDS` (default 45s) spaces submissions apart so LinkedIn doesn't flag the account.
 
 ## How it works
 

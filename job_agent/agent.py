@@ -16,6 +16,8 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import (
+    AUTO_APPLY,
+    ENABLED_PLATFORMS,
     FLASK_HOST,
     FLASK_PORT,
     LOG_FILE,
@@ -59,12 +61,16 @@ def _dedupe(jobs: list[dict]) -> list[dict]:
 
 
 async def _scrape_all() -> list[dict]:
-    per_platform = max(1, MAX_JOBS_PER_RUN // 3)
-    scrapers = [
-        LinkedInScraper(headless=False),
-        IndeedScraper(headless=False),
-        GlassdoorScraper(headless=True),
-    ]
+    available = {
+        "linkedin": LinkedInScraper(headless=False),
+        "indeed": IndeedScraper(headless=False),
+        "glassdoor": GlassdoorScraper(headless=True),
+    }
+    scrapers = [available[p] for p in ENABLED_PLATFORMS if p in available]
+    if not scrapers:
+        log.warning("No enabled scrapers; check ENABLED_PLATFORMS in config")
+        return []
+    per_platform = max(1, MAX_JOBS_PER_RUN // len(scrapers))
     tasks = [s.run(TARGET_ROLES, LOCATIONS, per_platform) for s in scrapers]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     out: list[dict] = []
@@ -113,21 +119,32 @@ def run_pipeline_once() -> dict:
 
     scored = _score_parallel(deduped)
 
-    stored = 0
+    stored_ids: list[int] = []
     for j in scored:
         if j["fit_score"] >= MIN_FIT_SCORE:
             j["status"] = "pending"
-            if insert_job(j):
-                stored += 1
+            row_id = insert_job(j)
+            if row_id:
+                stored_ids.append(row_id)
 
     elapsed = time.time() - start
     summary = {
         "scraped": len(raw),
         "deduped": len(deduped),
-        "stored": stored,
+        "stored": len(stored_ids),
         "elapsed_seconds": round(elapsed, 1),
     }
     log.info("Pipeline done %s", summary)
+
+    if AUTO_APPLY and stored_ids:
+        log.info("AUTO_APPLY on -> submitting %d jobs", len(stored_ids))
+        try:
+            from applicator import run_apply_many
+
+            run_apply_many(stored_ids)
+        except Exception:  # noqa: BLE001
+            log.exception("auto-apply failed")
+
     return summary
 
 

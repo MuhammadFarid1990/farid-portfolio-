@@ -324,7 +324,11 @@ async def _screenshot(page: Page, job_id: int) -> str:
 
 
 async def apply_to_job(page: Page, job: dict) -> tuple[bool, str, str]:
+    from config import ENABLED_PLATFORMS
+
     platform = (job.get("platform") or "").lower()
+    if platform not in ENABLED_PLATFORMS:
+        return False, f"platform '{platform}' disabled in config", ""
     if platform == "linkedin":
         ok, msg = await _apply_linkedin(page, job)
     elif platform == "indeed":

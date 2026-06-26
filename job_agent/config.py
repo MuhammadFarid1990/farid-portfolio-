@@ -60,6 +60,10 @@ WORK_TYPES = ["remote", "part-time", "hybrid"]
 MIN_FIT_SCORE = 70
 APPLY_DELAY_SECONDS = 45
 MAX_JOBS_PER_RUN = 50
+AUTO_APPLY = True  # if True, pipeline applies right after scoring with no dashboard click
+
+# Which platforms to scrape. Drop "linkedin" to skip it (e.g. while account is at risk).
+ENABLED_PLATFORMS = ["indeed", "glassdoor"]
 SCRAPE_TIMEOUT_SECONDS = 60
 HUMAN_DELAY_MIN = 2
 HUMAN_DELAY_MAX = 5
