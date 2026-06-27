@@ -30,7 +30,16 @@ from config import (
 )
 from db import init_db, insert_job, url_exists
 from scorer import score_job
-from scrapers import GlassdoorScraper, IndeedScraper, LinkedInScraper, RemotiveScraper
+from scrapers import (
+    ArbeitnowScraper,
+    GlassdoorScraper,
+    GreenhouseScraper,
+    IndeedScraper,
+    LinkedInScraper,
+    RemoteOKScraper,
+    RemotiveScraper,
+    TheMuseScraper,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,6 +76,10 @@ async def _scrape_all() -> list[dict]:
         "indeed": IndeedScraper(headless=False),
         "glassdoor": GlassdoorScraper(headless=True),
         "remotive": RemotiveScraper(),
+        "remoteok": RemoteOKScraper(),
+        "arbeitnow": ArbeitnowScraper(),
+        "themuse": TheMuseScraper(),
+        "greenhouse": GreenhouseScraper(),
     }
     scrapers = [available[p] for p in ENABLED_PLATFORMS if p in available]
     if not scrapers:
