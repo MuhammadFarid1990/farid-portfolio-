@@ -4,7 +4,11 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import os
+import subprocess
+import sys
 import threading
+import time
 from datetime import datetime
 
 from flask import Flask, Response, jsonify, render_template, request
@@ -91,6 +95,30 @@ def api_skip():
 def api_run_now():
     threading.Thread(target=_search_worker, daemon=True).start()
     return jsonify({"ok": True})
+
+
+@app.route("/api/pull-restart", methods=["POST"])
+def api_pull_restart():
+    """git pull latest from origin then restart this process. One-click upgrade."""
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        result = subprocess.run(
+            ["git", "pull"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        out = (result.stdout + "\n" + result.stderr).strip()
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"error": f"git pull failed: {e}"}), 500
+
+    def _restart() -> None:
+        time.sleep(1)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    threading.Thread(target=_restart, daemon=True).start()
+    return jsonify({"ok": True, "git_output": out, "restarting": True})
 
 
 @app.route("/status")

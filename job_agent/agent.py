@@ -52,10 +52,68 @@ logging.basicConfig(
 log = logging.getLogger("agent")
 
 
+NON_US_KEYWORDS = {
+    # countries / regions / common non-US city names
+    "canada", "toronto", "vancouver", "ontario", "montreal", "ottawa",
+    "uk", "united kingdom", "england", "scotland", "london", "manchester", "edinburgh", "bristol",
+    "ireland", "dublin", "cork",
+    "germany", "berlin", "munich", "hamburg", "deutschland",
+    "france", "paris", "lyon",
+    "netherlands", "amsterdam", "rotterdam",
+    "spain", "madrid", "barcelona",
+    "italy", "rome", "milan",
+    "poland", "warsaw", "krakow",
+    "portugal", "lisbon",
+    "sweden", "stockholm",
+    "denmark", "copenhagen",
+    "norway", "oslo",
+    "switzerland", "zurich", "geneva",
+    "australia", "sydney", "melbourne",
+    "new zealand", "auckland",
+    "india", "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune", "chennai", "noida", "gurgaon",
+    "pakistan", "karachi", "lahore", "islamabad",
+    "japan", "tokyo", "osaka",
+    "korea", "seoul",
+    "china", "shanghai", "beijing", "shenzhen",
+    "singapore",
+    "philippines", "manila",
+    "malaysia", "kuala lumpur",
+    "indonesia", "jakarta",
+    "vietnam", "hanoi", "ho chi minh",
+    "thailand", "bangkok",
+    "mexico", "mexico city",
+    "brazil", "sao paulo", "rio de janeiro",
+    "argentina", "buenos aires",
+    "colombia", "bogota",
+    "chile", "santiago",
+    "uae", "dubai", "abu dhabi",
+    "saudi", "riyadh",
+    "israel", "tel aviv",
+    "south africa", "cape town", "johannesburg",
+    "nigeria", "lagos",
+    "kenya", "nairobi",
+    "egypt", "cairo",
+    "emea", "apac", "latam", "eu only", "europe only",
+}
+
+
+def _is_non_us_location(location: str) -> bool:
+    loc = (location or "").lower()
+    if not loc:
+        return False
+    if "remote" in loc and any(s in loc for s in ("us", "u.s.", "usa", "united states", "north america", "americas", "anywhere")):
+        return False
+    return any(k in loc for k in NON_US_KEYWORDS)
+
+
 def _dedupe(jobs: list[dict]) -> list[dict]:
     seen: set[tuple] = set()
     out: list[dict] = []
+    dropped_non_us = 0
     for j in jobs:
+        if _is_non_us_location(j.get("location", "")):
+            dropped_non_us += 1
+            continue
         key = (
             (j.get("company") or "").strip().lower(),
             (j.get("title") or "").strip().lower(),
@@ -67,6 +125,8 @@ def _dedupe(jobs: list[dict]) -> list[dict]:
         if url_exists(j.get("url", "")):
             continue
         out.append(j)
+    if dropped_non_us:
+        log.info("Dropped %d non-US jobs before scoring", dropped_non_us)
     return out
 
 
