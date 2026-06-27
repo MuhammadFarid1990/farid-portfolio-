@@ -70,7 +70,12 @@ MAX_JOBS_PER_RUN = 50
 AUTO_APPLY = True  # if True, pipeline applies right after scoring with no dashboard click
 
 # Which platforms to scrape. Drop "linkedin" to skip it (e.g. while account is at risk).
-ENABLED_PLATFORMS = ["indeed", "glassdoor"]
+# - "remotive" is the most reliable: free JSON API, no anti-bot, real remote tech jobs.
+# - "indeed" / "glassdoor" use Playwright and fight Cloudflare; may stall on first run.
+ENABLED_PLATFORMS = ["remotive", "indeed", "glassdoor"]
+
+# Hard cap on time a single scraper can run before we give up on it (seconds).
+SCRAPER_TIMEOUT = 180
 SCRAPE_TIMEOUT_SECONDS = 60
 HUMAN_DELAY_MIN = 2
 HUMAN_DELAY_MAX = 5

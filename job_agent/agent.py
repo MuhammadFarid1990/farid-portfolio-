@@ -25,11 +25,12 @@ from config import (
     MAX_JOBS_PER_RUN,
     MIN_FIT_SCORE,
     SCHEDULE_HOURS,
+    SCRAPER_TIMEOUT,
     TARGET_ROLES,
 )
 from db import init_db, insert_job, url_exists
 from scorer import score_job
-from scrapers import GlassdoorScraper, IndeedScraper, LinkedInScraper
+from scrapers import GlassdoorScraper, IndeedScraper, LinkedInScraper, RemotiveScraper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,21 +66,34 @@ async def _scrape_all() -> list[dict]:
         "linkedin": LinkedInScraper(headless=False),
         "indeed": IndeedScraper(headless=False),
         "glassdoor": GlassdoorScraper(headless=True),
+        "remotive": RemotiveScraper(),
     }
     scrapers = [available[p] for p in ENABLED_PLATFORMS if p in available]
     if not scrapers:
         log.warning("No enabled scrapers; check ENABLED_PLATFORMS in config")
         return []
     per_platform = max(1, MAX_JOBS_PER_RUN // len(scrapers))
-    tasks = [s.run(TARGET_ROLES, LOCATIONS, per_platform) for s in scrapers]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    log.info("Scraping %s, ~%d jobs each, %ds timeout", [s.platform for s in scrapers], per_platform, SCRAPER_TIMEOUT)
+
+    async def _bounded(s):
+        try:
+            return await asyncio.wait_for(
+                s.run(TARGET_ROLES, LOCATIONS, per_platform),
+                timeout=SCRAPER_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            log.error("%s timed out after %ds — moving on", s.platform, SCRAPER_TIMEOUT)
+            return []
+        except Exception as e:  # noqa: BLE001
+            log.error("%s crashed: %s", s.platform, e)
+            return []
+
+    results = await asyncio.gather(*[_bounded(s) for s in scrapers])
     out: list[dict] = []
     for s, r in zip(scrapers, results):
-        if isinstance(r, Exception):
-            log.error("%s scrape error: %s", s.platform, r)
-            continue
-        log.info("%s returned %d jobs", s.platform, len(r))
+        log.info("[%s] returned %d jobs", s.platform, len(r))
         out.extend(r)
+    log.info("Scrape phase done: %d jobs across all platforms", len(out))
     return out
 
 
@@ -108,15 +122,19 @@ def _score_parallel(jobs: list[dict]) -> list[dict]:
 def run_pipeline_once() -> dict:
     init_db()
     start = time.time()
-    log.info("Pipeline start at %s", datetime.utcnow().isoformat())
+    log.info("=" * 60)
+    log.info("PIPELINE START at %s", datetime.utcnow().isoformat())
+    log.info("Roles: %d | Locations: %d | Platforms: %s", len(TARGET_ROLES), len(LOCATIONS), ENABLED_PLATFORMS)
+    log.info("=" * 60)
 
     raw = asyncio.run(_scrape_all())
-    log.info("Scraped %d total raw jobs", len(raw))
+    log.info("PHASE 1 done: %d raw jobs", len(raw))
 
     deduped = _dedupe(raw)
-    log.info("After dedupe / url check: %d jobs", len(deduped))
+    log.info("PHASE 2 done: %d after dedupe", len(deduped))
     deduped = deduped[:MAX_JOBS_PER_RUN]
 
+    log.info("PHASE 3 starting: scoring %d jobs with Claude", len(deduped))
     scored = _score_parallel(deduped)
 
     stored_ids: list[int] = []
