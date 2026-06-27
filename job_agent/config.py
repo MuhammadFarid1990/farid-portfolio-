@@ -36,20 +36,17 @@ EEOC_DECLINE = True  # auto-pick "prefer not to answer" on demographic questions
 
 # Job search targeting
 TARGET_ROLES = [
-    "Data Science Intern",
-    "Data Analyst Intern",
-    "Machine Learning Intern",
-    "AI Engineer Intern",
-    "Business Intelligence Intern",
-    "Analytics Intern",
-    "Part-time Data Analyst",
-    "Part-time Data Scientist",
-    "Part-time AI Engineer",
-    "Part-time Machine Learning Engineer",
-    "Fall 2026 Data Science",
-    "Fall 2026 Analytics",
-    "Co-op Data Science",
-    "Working Student Data",
+    # Broad role keywords — APIs match these as substrings in titles, so they
+    # need to be common phrases. Claude's hard rules (in scorer.py) filter out
+    # senior / full-time-only / non-US / wrong-field roles.
+    "data analyst",
+    "data scientist",
+    "data science",
+    "machine learning",
+    "ai engineer",
+    "business intelligence",
+    "analytics engineer",
+    "intern",
 ]
 
 LOCATIONS = [
