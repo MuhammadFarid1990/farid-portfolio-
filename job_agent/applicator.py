@@ -12,13 +12,20 @@ from playwright.async_api import Page, async_playwright
 
 from config import (
     APPLY_DELAY_SECONDS,
+    CANDIDATE_CITY,
+    CANDIDATE_COUNTRY,
+    CANDIDATE_DOB,
     CANDIDATE_EMAIL,
     CANDIDATE_LINKEDIN,
     CANDIDATE_NAME,
     CANDIDATE_PHONE,
+    CANDIDATE_STATE,
     CANDIDATE_WEBSITE,
+    CANDIDATE_ZIP,
+    EEOC_DECLINE,
     HUMAN_DELAY_MAX,
     HUMAN_DELAY_MIN,
+    JOB_BOARD_PASSWORD,
     LINKEDIN_EMAIL,
     LINKEDIN_PASSWORD,
     REQUIRES_SPONSORSHIP,
@@ -39,14 +46,44 @@ async def _human_pause(short: bool = False) -> None:
 
 
 FIELD_MAP: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"first.?name", re.I), CANDIDATE_NAME.split()[0]),
-    (re.compile(r"last.?name", re.I), CANDIDATE_NAME.split()[-1]),
-    (re.compile(r"full.?name|^name", re.I), CANDIDATE_NAME),
-    (re.compile(r"email", re.I), CANDIDATE_EMAIL),
+    (re.compile(r"first.?name|given.?name", re.I), CANDIDATE_NAME.split()[0]),
+    (re.compile(r"last.?name|family.?name|surname", re.I), CANDIDATE_NAME.split()[-1]),
+    (re.compile(r"full.?name|^name|legal.?name", re.I), CANDIDATE_NAME),
+    (re.compile(r"e.?mail", re.I), CANDIDATE_EMAIL),
     (re.compile(r"phone|mobile|cell", re.I), CANDIDATE_PHONE),
     (re.compile(r"linkedin", re.I), CANDIDATE_LINKEDIN),
-    (re.compile(r"website|portfolio|personal site", re.I), CANDIDATE_WEBSITE),
-    (re.compile(r"salary|compensation", re.I), SALARY_EXPECTATION),
+    (re.compile(r"website|portfolio|personal site|home.?page", re.I), CANDIDATE_WEBSITE),
+    (re.compile(r"salary|compensation|desired.?pay", re.I), SALARY_EXPECTATION),
+    (re.compile(r"city|town", re.I), CANDIDATE_CITY),
+    (re.compile(r"state|province|region", re.I), CANDIDATE_STATE),
+    (re.compile(r"zip|postal", re.I), CANDIDATE_ZIP),
+    (re.compile(r"country|nation", re.I), CANDIDATE_COUNTRY),
+    (re.compile(r"address.?line.?1|street", re.I), f"{CANDIDATE_CITY}, {CANDIDATE_STATE}"),
+    (re.compile(r"birth|dob|date.?of.?birth", re.I), CANDIDATE_DOB),
+]
+
+
+REQUIRED_FIELDS_WE_LACK: list[re.Pattern] = []
+if not CANDIDATE_DOB:
+    REQUIRED_FIELDS_WE_LACK.append(re.compile(r"birth|dob|date.?of.?birth", re.I))
+
+
+EEOC_PATTERNS = [
+    re.compile(r"gender", re.I),
+    re.compile(r"race|ethnic", re.I),
+    re.compile(r"veteran", re.I),
+    re.compile(r"disab", re.I),
+    re.compile(r"hispanic|latino", re.I),
+    re.compile(r"sexual orientation", re.I),
+]
+
+EEOC_DECLINE_VALUES = [
+    "Prefer not to answer",
+    "Decline to self-identify",
+    "I do not wish to answer",
+    "Decline to answer",
+    "I don't wish to answer",
+    "Prefer not to say",
 ]
 
 
@@ -60,9 +97,17 @@ YES_NO_FIELDS: list[tuple[re.Pattern, bool]] = [
 
 def _label_match(label: str) -> str | None:
     for pat, value in FIELD_MAP:
-        if pat.search(label):
+        if pat.search(label) and value:
             return value
     return None
+
+
+def _is_eeoc(label: str) -> bool:
+    return any(p.search(label) for p in EEOC_PATTERNS)
+
+
+def _needs_missing_field(label: str) -> bool:
+    return any(p.search(label) for p in REQUIRED_FIELDS_WE_LACK)
 
 
 def _yes_no_match(label: str) -> bool | None:
@@ -72,8 +117,13 @@ def _yes_no_match(label: str) -> bool | None:
     return None
 
 
-async def _fill_form_fields(page: Page) -> None:
-    """Best-effort: walk every input and select on the page, fill what we recognize."""
+async def _fill_form_fields(page: Page) -> list[str]:
+    """Walk every input/select/radio on the page, fill what we recognize.
+
+    Returns a list of issue strings (e.g. ["missing dob"]). Empty = no issues.
+    """
+    issues: list[str] = []
+
     inputs = await page.query_selector_all("input, textarea")
     for el in inputs:
         try:
@@ -87,6 +137,20 @@ async def _fill_form_fields(page: Page) -> None:
                 or await el.get_attribute("id")
                 or ""
             )
+            if input_type == "password":
+                if JOB_BOARD_PASSWORD:
+                    current = await el.input_value()
+                    if not current:
+                        await el.fill(JOB_BOARD_PASSWORD)
+                        await _human_pause(short=True)
+                else:
+                    issues.append("password field but JOB_BOARD_PASSWORD not set")
+                continue
+            if _needs_missing_field(label):
+                required = await el.get_attribute("required") or await el.get_attribute("aria-required")
+                if required:
+                    issues.append(f"missing required field: {label}")
+                continue
             value = _label_match(label)
             if value:
                 current = await el.input_value()
@@ -105,11 +169,26 @@ async def _fill_form_fields(page: Page) -> None:
                 or await sel.get_attribute("id")
                 or ""
             )
-            yn = _yes_no_match(label)
-            if yn is None:
+            if EEOC_DECLINE and _is_eeoc(label):
+                await _select_decline(sel)
                 continue
-            option = "Yes" if yn else "No"
-            await sel.select_option(label=option)
+            yn = _yes_no_match(label)
+            if yn is not None:
+                option = "Yes" if yn else "No"
+                try:
+                    await sel.select_option(label=option)
+                except Exception:  # noqa: BLE001
+                    pass
+                continue
+            text_val = _label_match(label)
+            if text_val:
+                try:
+                    await sel.select_option(label=text_val)
+                except Exception:  # noqa: BLE001
+                    try:
+                        await sel.select_option(value=text_val)
+                    except Exception:  # noqa: BLE001
+                        pass
         except Exception as e:  # noqa: BLE001
             log.debug("select skip: %s", e)
 
@@ -127,6 +206,9 @@ async def _fill_form_fields(page: Page) -> None:
                 label_text = legend or name
         except Exception:  # noqa: BLE001
             pass
+        if EEOC_DECLINE and _is_eeoc(label_text):
+            await _check_decline_radio(options)
+            continue
         yn = _yes_no_match(label_text)
         if yn is None:
             continue
@@ -144,6 +226,32 @@ async def _fill_form_fields(page: Page) -> None:
                 except Exception:  # noqa: BLE001
                     pass
                 break
+
+    return issues
+
+
+async def _select_decline(sel_handle) -> None:
+    for label in EEOC_DECLINE_VALUES:
+        try:
+            await sel_handle.select_option(label=label)
+            return
+        except Exception:  # noqa: BLE001
+            continue
+
+
+async def _check_decline_radio(options: list) -> None:
+    for opt in options:
+        try:
+            opt_label = (
+                await opt.get_attribute("value")
+                or await opt.get_attribute("aria-label")
+                or ""
+            )
+            if re.search(r"decline|prefer.?not|do.?not.?wish|don'?t.?wish", opt_label, re.I):
+                await opt.check()
+                return
+        except Exception:  # noqa: BLE001
+            continue
 
 
 async def _upload_resume(page: Page) -> None:
@@ -209,6 +317,18 @@ async def _detect_captcha(page: Page) -> bool:
     return False
 
 
+async def _prefer_signup_tab(page: Page) -> None:
+    """When a site shows Sign In / Sign Up tabs, click Sign Up so we create an account."""
+    await _try_click(page, [
+        "button:has-text('Create account')",
+        "a:has-text('Create account')",
+        "button:has-text('Sign up')",
+        "a:has-text('Sign up')",
+        "[data-test*='sign-up' i]",
+        "[data-test*='signup' i]",
+    ])
+
+
 async def _linkedin_login(page: Page) -> None:
     await page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded")
     if "/feed" in page.url:
@@ -225,7 +345,7 @@ async def _linkedin_login(page: Page) -> None:
         pass
 
 
-async def _apply_linkedin(page: Page, job: dict) -> tuple[bool, str]:
+async def _apply_linkedin(page: Page, job: dict) -> tuple[bool, str, list[str]]:
     await _linkedin_login(page)
     await page.goto(job["url"], wait_until="domcontentloaded")
     await _human_pause()
@@ -235,12 +355,13 @@ async def _apply_linkedin(page: Page, job: dict) -> tuple[bool, str]:
         "button:has-text('Easy Apply')",
     ])
     if not clicked:
-        return False, "Easy Apply not available"
+        return False, "Easy Apply not available", []
 
+    all_issues: list[str] = []
     for step in range(8):
         if await _detect_captcha(page):
-            return False, "CAPTCHA detected"
-        await _fill_form_fields(page)
+            return False, "CAPTCHA detected", all_issues
+        all_issues.extend(await _fill_form_fields(page))
         await _upload_resume(page)
         await _paste_cover_letter(page, job.get("cover_letter", ""))
         if await _try_click(page, [
@@ -248,7 +369,7 @@ async def _apply_linkedin(page: Page, job: dict) -> tuple[bool, str]:
             "button[aria-label*='Submit application' i]",
         ]):
             await _human_pause()
-            return True, "submitted"
+            return True, "submitted", all_issues
         if not await _try_click(page, [
             "button:has-text('Review')",
             "button:has-text('Next')",
@@ -256,10 +377,10 @@ async def _apply_linkedin(page: Page, job: dict) -> tuple[bool, str]:
             "button[aria-label*='Next' i]",
         ]):
             break
-    return False, f"stalled after {step + 1} steps"
+    return False, f"stalled after {step + 1} steps", all_issues
 
 
-async def _apply_indeed(page: Page, job: dict) -> tuple[bool, str]:
+async def _apply_indeed(page: Page, job: dict) -> tuple[bool, str, list[str]]:
     await page.goto(job["url"], wait_until="domcontentloaded")
     await _human_pause()
     clicked = await _try_click(page, [
@@ -268,12 +389,15 @@ async def _apply_indeed(page: Page, job: dict) -> tuple[bool, str]:
         "a:has-text('Apply now')",
     ])
     if not clicked:
-        return False, "Apply button not found"
+        return False, "Apply button not found", []
 
+    await _prefer_signup_tab(page)
+
+    all_issues: list[str] = []
     for _ in range(8):
         if await _detect_captcha(page):
-            return False, "CAPTCHA detected"
-        await _fill_form_fields(page)
+            return False, "CAPTCHA detected", all_issues
+        all_issues.extend(await _fill_form_fields(page))
         await _upload_resume(page)
         await _paste_cover_letter(page, job.get("cover_letter", ""))
         if await _try_click(page, [
@@ -281,16 +405,16 @@ async def _apply_indeed(page: Page, job: dict) -> tuple[bool, str]:
             "button:has-text('Submit application')",
             "button[type=submit]:has-text('Submit')",
         ]):
-            return True, "submitted"
+            return True, "submitted", all_issues
         if not await _try_click(page, [
             "button:has-text('Continue')",
             "button:has-text('Next')",
         ]):
             break
-    return False, "stalled"
+    return False, "stalled", all_issues
 
 
-async def _apply_external(page: Page, job: dict) -> tuple[bool, str]:
+async def _apply_external(page: Page, job: dict) -> tuple[bool, str, list[str]]:
     await page.goto(job["url"], wait_until="domcontentloaded")
     await _human_pause()
     await _try_click(page, [
@@ -300,8 +424,9 @@ async def _apply_external(page: Page, job: dict) -> tuple[bool, str]:
     ])
     await _human_pause()
     if await _detect_captcha(page):
-        return False, "CAPTCHA detected"
-    await _fill_form_fields(page)
+        return False, "CAPTCHA detected", []
+    await _prefer_signup_tab(page)
+    issues = await _fill_form_fields(page)
     await _upload_resume(page)
     await _paste_cover_letter(page, job.get("cover_letter", ""))
     if await _try_click(page, [
@@ -309,8 +434,8 @@ async def _apply_external(page: Page, job: dict) -> tuple[bool, str]:
         "button:has-text('Submit application')",
         "button:has-text('Send application')",
     ]):
-        return True, "submitted"
-    return False, "could not find submit"
+        return True, "submitted", issues
+    return False, "could not find submit", issues
 
 
 async def _screenshot(page: Page, job_id: int) -> str:
@@ -323,20 +448,33 @@ async def _screenshot(page: Page, job_id: int) -> str:
     return str(path)
 
 
-async def apply_to_job(page: Page, job: dict) -> tuple[bool, str, str]:
+async def apply_to_job(page: Page, job: dict) -> tuple[bool, str, str, list[str]]:
     from config import ENABLED_PLATFORMS
 
     platform = (job.get("platform") or "").lower()
     if platform not in ENABLED_PLATFORMS:
-        return False, f"platform '{platform}' disabled in config", ""
+        return False, f"platform '{platform}' disabled in config", "", []
     if platform == "linkedin":
-        ok, msg = await _apply_linkedin(page, job)
+        ok, msg, issues = await _apply_linkedin(page, job)
     elif platform == "indeed":
-        ok, msg = await _apply_indeed(page, job)
+        ok, msg, issues = await _apply_indeed(page, job)
     else:
-        ok, msg = await _apply_external(page, job)
+        ok, msg, issues = await _apply_external(page, job)
     shot = await _screenshot(page, job["id"])
-    return ok, msg, shot
+    return ok, msg, shot, issues
+
+
+def _classify_failure(msg: str, issues: list[str]) -> str:
+    """Decide between 'failed' (genuine error) and 'needs_manual' (we just can't finish it)."""
+    if issues:
+        return "needs_manual"
+    needs_manual_signals = (
+        "CAPTCHA",
+        "password field but JOB_BOARD_PASSWORD",
+    )
+    if any(s in msg for s in needs_manual_signals):
+        return "needs_manual"
+    return "failed"
 
 
 async def apply_many(jobs: list[dict], progress=None) -> None:
@@ -356,13 +494,15 @@ async def apply_many(jobs: list[dict], progress=None) -> None:
         for i, job in enumerate(jobs, 1):
             log.info("Applying %d/%d: %s @ %s", i, total, job["title"], job["company"])
             try:
-                ok, msg, shot = await apply_to_job(page, job)
+                ok, msg, shot, issues = await apply_to_job(page, job)
                 if ok:
                     update_status(job["id"], "applied", screenshot_path=shot)
                     log.info("Applied: %s @ %s", job["title"], job["company"])
                 else:
-                    update_status(job["id"], "failed", screenshot_path=shot, error_message=msg)
-                    log.warning("Failed: %s @ %s — %s", job["title"], job["company"], msg)
+                    status = _classify_failure(msg, issues)
+                    detail = msg if not issues else f"{msg}; {'; '.join(issues)}"
+                    update_status(job["id"], status, screenshot_path=shot, error_message=detail)
+                    log.warning("%s: %s @ %s — %s", status, job["title"], job["company"], detail)
             except Exception as e:  # noqa: BLE001
                 log.exception("apply exception")
                 update_status(job["id"], "failed", error_message=str(e))

@@ -35,7 +35,7 @@ body {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 20px 32px;
 }
@@ -131,6 +131,31 @@ main { padding: 0 32px 24px; }
 .status-failed { background: var(--bad); color: white; border-color: var(--bad); }
 .status-skipped { color: var(--muted); }
 .status-approved { color: var(--accent); border-color: var(--accent); }
+.status-needs_manual { background: var(--warn); color: #0b1220; border-color: var(--warn); }
+
+.err-detail {
+  color: var(--muted);
+  font-size: 11px;
+  cursor: help;
+  text-decoration: underline dotted;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 0 32px 12px;
+}
+.filter-btn {
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+}
+.filter-btn:hover { color: var(--text); }
+.filter-btn.active { background: var(--surface-2); color: var(--text); border-color: var(--accent); }
 
 .cover {
   margin-top: 10px;

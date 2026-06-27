@@ -131,10 +131,14 @@ def stats() -> dict:
         pending = conn.execute(
             "SELECT COUNT(*) FROM jobs WHERE status = 'pending'"
         ).fetchone()[0]
+        needs_manual = conn.execute(
+            "SELECT COUNT(*) FROM jobs WHERE status = 'needs_manual'"
+        ).fetchone()[0]
     return {
         "total": total,
         "scored_above_threshold": scored,
         "applied": applied,
         "failed": failed,
         "pending": pending,
+        "needs_manual": needs_manual,
     }

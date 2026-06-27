@@ -35,7 +35,19 @@
       <div class="stat-num">{{ stats.failed }}</div>
       <div class="stat-label">Failed</div>
     </div>
+    <div class="stat">
+      <div class="stat-num">{{ stats.needs_manual or 0 }}</div>
+      <div class="stat-label">Needs manual</div>
+    </div>
   </section>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="pending">Pending</button>
+    <button class="filter-btn" data-filter="applied">Applied</button>
+    <button class="filter-btn" data-filter="needs_manual">Needs manual</button>
+    <button class="filter-btn" data-filter="failed">Failed</button>
+  </div>
 
   <main>
     {% if not jobs %}
@@ -49,7 +61,7 @@
         {% set host = (j.url.split('/')[2] if j.url else '') %}
         <li class="job" data-id="{{ j.id }}" data-status="{{ j.status }}">
           <div class="row">
-            <input type="checkbox" class="pick" {% if j.status == 'pending' %}checked{% endif %} {% if j.status in ['applied','failed','skipped'] %}disabled{% endif %} />
+            <input type="checkbox" class="pick" {% if j.status == 'pending' %}checked{% endif %} {% if j.status in ['applied','failed','skipped','needs_manual'] %}disabled{% endif %} />
             <img class="logo" src="https://www.google.com/s2/favicons?sz=64&domain={{ host }}" alt="" onerror="this.style.visibility='hidden'" />
             <div class="job-main">
               <div class="job-title-row">
@@ -67,7 +79,8 @@
               <div class="job-actions">
                 <a href="{{ j.url }}" target="_blank" rel="noopener">View job →</a>
                 <button class="link-btn toggle-cover">Cover letter</button>
-                <span class="status-pill status-{{ j.status }}">{{ j.status }}</span>
+                <span class="status-pill status-{{ j.status }}">{{ j.status.replace('_', ' ') }}</span>
+                {% if j.error_message %}<span class="err-detail" title="{{ j.error_message }}">why?</span>{% endif %}
               </div>
               <pre class="cover hidden">{{ j.cover_letter }}</pre>
             </div>
@@ -170,6 +183,17 @@
     }
 
     refreshCounts();
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const f = btn.dataset.filter;
+        document.querySelectorAll('.job').forEach(li => {
+          li.style.display = (f === 'all' || li.dataset.status === f) ? '' : 'none';
+        });
+      };
+    });
   </script>
 </body>
 </html>
