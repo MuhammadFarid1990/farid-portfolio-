@@ -64,7 +64,7 @@ LOCATIONS = [
 WORK_TYPES = ["remote", "part-time", "hybrid"]
 
 # Pipeline knobs
-MIN_FIT_SCORE = 70
+MIN_FIT_SCORE = 40
 APPLY_DELAY_SECONDS = 45
 MAX_JOBS_PER_RUN = 50
 AUTO_APPLY = True  # if True, pipeline applies right after scoring with no dashboard click
