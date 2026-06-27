@@ -1,15 +1,15 @@
 :root {
-  --bg: #0b1220;
-  --surface: #121a2e;
-  --surface-2: #1a2440;
-  --border: #25304d;
-  --text: #f3f5fb;
-  --muted: #97a3c2;
-  --primary: #34d399;
-  --primary-dark: #059669;
-  --warn: #f59e0b;
-  --bad: #ef4444;
-  --accent: #60a5fa;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --primary: #059669;
+  --primary-dark: #047857;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --accent: #2563eb;
 }
 
 * { box-sizing: border-box; }
@@ -87,8 +87,8 @@ main { padding: 0 32px 24px; }
   font-size: 12px;
   color: #0b1220;
 }
-.score-high { background: var(--primary); }
-.score-mid { background: var(--warn); }
+.score-high { background: var(--primary); color: #fff; }
+.score-mid { background: var(--warn); color: #fff; }
 
 .job-sub { color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .company { color: var(--text); }
@@ -127,11 +127,11 @@ main { padding: 0 32px 24px; }
   border: 1px solid var(--border);
   text-transform: capitalize;
 }
-.status-applied { background: var(--primary); color: #0b1220; border-color: var(--primary); }
-.status-failed { background: var(--bad); color: white; border-color: var(--bad); }
+.status-applied { background: var(--primary); color: #fff; border-color: var(--primary); }
+.status-failed { background: var(--bad); color: #fff; border-color: var(--bad); }
 .status-skipped { color: var(--muted); }
 .status-approved { color: var(--accent); border-color: var(--accent); }
-.status-needs_manual { background: var(--warn); color: #0b1220; border-color: var(--warn); }
+.status-needs_manual { background: var(--warn); color: #fff; border-color: var(--warn); }
 
 .err-detail {
   color: var(--muted);
@@ -198,11 +198,11 @@ button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 button.primary {
   background: var(--primary);
-  color: #0b1220;
+  color: #fff;
   border-color: var(--primary);
   font-weight: 600;
 }
-button.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: white; }
+button.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
 button.ghost { background: transparent; }
 
 .topbar-actions { display: flex; gap: 10px; align-items: center; }
