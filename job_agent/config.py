@@ -36,32 +36,30 @@ EEOC_DECLINE = True  # auto-pick "prefer not to answer" on demographic questions
 
 # Job search targeting
 TARGET_ROLES = [
-    "Data Scientist",
-    "AI Engineer",
-    "Machine Learning Engineer",
-    "Business Intelligence Analyst",
-    "Data Analyst",
-    "AI Automation Engineer",
-    "Forward Deployment Engineer",
-    "ML Analyst",
-    "Analytics Engineer",
-    "AI Product Analyst",
     "Data Science Intern",
-    "AI Research Analyst",
+    "Data Analyst Intern",
+    "Machine Learning Intern",
+    "AI Engineer Intern",
+    "Business Intelligence Intern",
+    "Analytics Intern",
+    "Part-time Data Analyst",
+    "Part-time Data Scientist",
+    "Part-time AI Engineer",
+    "Part-time Machine Learning Engineer",
+    "Fall 2026 Data Science",
+    "Fall 2026 Analytics",
+    "Co-op Data Science",
+    "Working Student Data",
 ]
 
 LOCATIONS = [
     "Remote",
+    "United States",
     "Dallas TX",
-    "Plano TX",
-    "Irving TX",
-    "Frisco TX",
-    "McKinney TX",
-    "Richardson TX",
     "DFW",
 ]
 
-WORK_TYPES = ["remote", "part-time", "hybrid"]
+WORK_TYPES = ["remote", "part-time", "internship"]
 
 # Pipeline knobs
 MIN_FIT_SCORE = 40
