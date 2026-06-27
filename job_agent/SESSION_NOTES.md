@@ -1,55 +1,80 @@
 # Where we left off — pick up here next session
 
-Last worked on: 2026-06-26 evening.
+Last worked on: 2026-06-27 evening.
 
-## What's done and working
+## Where the user is right now
 
-- Full project scaffolded under `job_agent/` and pushed to branch `claude/job-application-agent-528ny4`.
-- User (Muhammad) has it running locally on Windows at `C:\Users\mfari\farid-portfolio-\job_agent\` inside a `.venv`.
-- `.env` and `resume.pdf` are in place on his machine.
-- Chromium is installed via `playwright install chromium`.
-- First `python agent.py` ran successfully — Flask served on http://localhost:5000, scheduler armed for 8 AM / 6 PM.
+Muhammad is running the agent on Windows at `C:\Users\mfari\farid-portfolio-\job_agent\` under a `.venv`, launched via `start.bat`. The Flask dashboard is at http://127.0.0.1:5000. He's pulled and restarted multiple times; the latest commit on `claude/job-application-agent-528ny4` is the three-section rework.
 
-## Settings that changed mid-session
+## What works
 
-- `AUTO_APPLY = True` — pipeline auto-submits after scoring, no dashboard click.
-- `ENABLED_PLATFORMS = ["indeed", "glassdoor"]` — LinkedIn disabled for now (account safety).
-- CSV export button added to dashboard (`/export.csv`).
+- 5 JSON-based job sources fully working: Remotive, Remote OK, Arbeitnow, The Muse, Greenhouse public boards. Indeed/LinkedIn/Glassdoor are kept in code but disabled because of Cloudflare.
+- Claude scoring works (after he revoked two leaked API keys and added a third). He has ~$16 credit.
+- Dashboard is now three sections (Auto-Apply / Manual Apply / Hiring Manager Contacts), light theme.
+- Excel export with 4 sheets (Auto-Apply / Manual Apply / Hiring Managers / Applied history) via openpyxl.
+- One-click "Pull & Restart" button works thanks to `start.bat` wrapper that loops on exit code 42.
+- Auto-purge of non-US jobs on startup + manual "Purge Non-US" button.
+- Hiring manager search links (Google → site:linkedin.com/in) per company.
+- "Mark as applied ✓" button on manual rows.
 
-## Half-finished work (NEXT SESSION starts here)
+## THE OPEN PROBLEM (start here tomorrow)
 
-We were adding **signup-form handling** so the agent can create accounts on job boards that require it.
+**Volume is still only ~5 matches per run.** User explicitly called this out: "After your next Run Search Now, you should see 30-80+ matches — this is not running, i still see 5".
 
-Already committed to `config.py` and `.env.example`:
-- `CANDIDATE_CITY`, `CANDIDATE_STATE`, `CANDIDATE_ZIP`, `CANDIDATE_COUNTRY`
-- `CANDIDATE_DOB` (optional)
-- `JOB_BOARD_PASSWORD` (user needs to set in his local `.env`)
-- `EEOC_DECLINE = True`
+I had bumped `MAX_JOBS_PER_RUN = 200` and broadened `TARGET_ROLES` to common phrases like "data analyst", "data scientist", "intern", but the real bottleneck is somewhere else. Likely causes to investigate IN THIS ORDER:
 
-**Still TO DO:**
-1. Teach `applicator.py` to detect signup pages (look for "Create account", "Sign up", password+confirm-password fields) and fill them using `JOB_BOARD_PASSWORD`.
-2. Add a `needs_manual` job status for forms requiring fields we don't have (DOB if blank, etc.). Show these distinctly in the dashboard.
-3. Detect EEOC questions (gender, race, veteran, disability) and select "Prefer not to answer" / "Decline to self-identify".
-4. Extend the FIELD_MAP regex list in `applicator.py` to cover city/state/zip/country.
+1. **The five JSON sources may not return many real matches for the strict scorer.** Claude's hard rules (in `scorer.py` SYSTEM_PROMPT) require part-time / intern / Fall 2026 / US-only — most senior or full-time jobs auto-score 0-20 and get filtered out by `MIN_FIT_SCORE = 25`. Check the terminal logs to see how many jobs are being scraped vs how many score 25+.
+2. **Remotive / Remote OK return mostly senior or non-relevant titles** even when filtered by keyword. The `_is_non_us_location` filter catches lots more than expected (London, Bangalore, etc.) — could be dropping legitimate US-remote roles where the location string is ambiguous.
+3. **The role keyword filter is `t in title.lower()`** — too restrictive. A job titled "Senior Data Engineer, Platform" doesn't contain "data analyst" or "data scientist". Should probably do tokenized matching ("data" + "scientist") or use a broader OR.
+4. **Greenhouse company list is short (~25 companies).** Could expand to 100+ and also add Lever boards (api.lever.co/v0/postings/{slug}).
 
-## User preferences captured
+Suggested fix path tomorrow:
+- Add `LeverScraper` (lever.co public board API)
+- Triple the Greenhouse company list
+- Loosen role matching (tokenize)
+- Add detailed counter logging: "Remotive: 312 raw → 47 matched keyword → 12 passed location → 3 scored 25+"
+- Maybe relax `MIN_FIT_SCORE` to 15 since the hard-rule filter does the heavy lifting
 
-- Wants full auto-apply, no clicks (DONE).
-- Wants LinkedIn skipped until further notice (DONE).
-- Picked all three signup-field options: city/state/zip, DOB, EEOC auto-decline.
-- Was about to set `JOB_BOARD_PASSWORD` in his local `.env`. He suggested `Sana123456!` — I pushed back as weak. He hadn't decided yet.
+## Settings that diverge from defaults
+
+- `AUTO_APPLY = True`
+- `ENABLED_PLATFORMS = ["remotive", "remoteok", "arbeitnow", "themuse", "greenhouse"]`
+- `MIN_FIT_SCORE = 25`
+- `MAX_JOBS_PER_RUN = 200`
+- `APPLY_DELAY_SECONDS = 30`
+- `MIN_FIT_SCORE = 25`
+- `TARGET_ROLES` — broad keywords ("data analyst", "data scientist", "machine learning", "intern", etc.)
+- `LOCATIONS = ["Remote", "United States", "Dallas TX", "DFW"]`
+
+## Signup-handling config the user added to his local .env
+
+He added (or should have added) on his side, not in git:
+```
+JOB_BOARD_PASSWORD=...
+CANDIDATE_CITY=Dallas
+CANDIDATE_STATE=TX
+CANDIDATE_ZIP=75080
+CANDIDATE_COUNTRY=United States
+CANDIDATE_DOB=
+```
 
 ## Things to remind the user tomorrow
 
-1. **Set `JOB_BOARD_PASSWORD` in his local `.env`** — pick something stronger than `Sana123456!`.
-2. **He needs to `git pull` before restarting** — half-finished signup work will land in the next commit.
-3. **Revoked Anthropic key already** (good). New key is in his local `.env`.
+1. **Stop pasting API keys / passwords in chat.** He's done it twice now. Both keys had to be revoked.
+2. Auto-apply success rate on external company sites is realistically 20-30%. Most postings will end up in the Manual Apply section. That's a feature, not a bug — the dashboard surfaces them and he applies in 2 minutes each.
+3. He has `$16` credit on Anthropic. Each pipeline run scores 100-200 jobs ≈ $0.30–$0.60. Should last weeks.
 
-## Quick resume command for tomorrow
+## Quick resume command
 
 ```
 cd C:\Users\mfari\farid-portfolio-\job_agent
-git pull
-.venv\Scripts\activate
-python agent.py
+start.bat
 ```
+
+(Or just click "Pull & Restart" in the dashboard if it's already open.)
+
+## When resuming, say to me
+
+"Continue from SESSION_NOTES.md — focus on getting the volume above 5 matches."
+
+That's the single thing to fix tomorrow.
