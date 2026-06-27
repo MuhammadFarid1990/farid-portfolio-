@@ -99,7 +99,7 @@ def api_run_now():
 
 @app.route("/api/pull-restart", methods=["POST"])
 def api_pull_restart():
-    """git pull latest from origin then restart this process. One-click upgrade."""
+    """git pull latest, then exit with code 42 so start.bat / start.sh relaunch us."""
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     try:
         result = subprocess.run(
@@ -113,12 +113,12 @@ def api_pull_restart():
     except Exception as e:  # noqa: BLE001
         return jsonify({"error": f"git pull failed: {e}"}), 500
 
-    def _restart() -> None:
+    def _exit_for_relaunch() -> None:
         time.sleep(1)
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        os._exit(42)
 
-    threading.Thread(target=_restart, daemon=True).start()
-    return jsonify({"ok": True, "git_output": out, "restarting": True})
+    threading.Thread(target=_exit_for_relaunch, daemon=True).start()
+    return jsonify({"ok": True, "git_output": out, "exiting_with": 42})
 
 
 @app.route("/status")

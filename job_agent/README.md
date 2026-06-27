@@ -18,9 +18,18 @@ Place your resume PDF at `job_agent/resume.pdf` (used for uploads). The plain-te
 
 ## Run
 
-```bash
-python agent.py
+**Windows:**
 ```
+start.bat
+```
+
+**Mac / Linux:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+(Or `python agent.py` directly — but then the dashboard's "Pull & Restart" button only does the pull, you'd need to restart by hand. The wrappers handle the relaunch loop.)
 
 * Dashboard opens at <http://localhost:5000>.
 * The pipeline runs daily at 8:00 AM and 6:00 PM (configurable in `config.py: SCHEDULE_HOURS`).
