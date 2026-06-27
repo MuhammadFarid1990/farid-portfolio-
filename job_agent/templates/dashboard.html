@@ -50,12 +50,19 @@
           </div>
           <div class="reason">{{ j.fit_reason }}</div>
           <div class="job-actions">
-            <a href="{{ j.url }}" target="_blank" rel="noopener" class="btn-link">View job →</a>
-            <a href="{{ hm_url }}" target="_blank" rel="noopener" class="btn-link contact">Find hiring manager</a>
+            <button class="link-btn toggle-desc">View job details</button>
             <button class="link-btn toggle-cover">Cover letter</button>
+            <a href="{{ hm_url }}" target="_blank" rel="noopener" class="btn-link contact">Find hiring manager</a>
             <span class="status-pill status-{{ j.status }}">{{ j.status.replace('_', ' ') }}</span>
             {% if j.error_message %}<span class="err-detail" title="{{ j.error_message }}">why?</span>{% endif %}
             {% if manual %}<button class="link-btn mark-applied" data-id="{{ j.id }}">Mark as applied ✓</button>{% endif %}
+          </div>
+          <div class="job-detail hidden">
+            <div class="detail-head">
+              <strong>Full job description</strong>
+              <a href="{{ j.url }}" target="_blank" rel="noopener" class="btn-link tiny">Open original on {{ host }} ↗</a>
+            </div>
+            <pre class="desc">{{ j.description }}</pre>
           </div>
           <pre class="cover hidden">{{ j.cover_letter }}</pre>
         </div>
@@ -156,6 +163,13 @@
 
     document.querySelectorAll('.toggle-cover').forEach(b => {
       b.onclick = () => b.closest('.job-main').querySelector('.cover').classList.toggle('hidden');
+    });
+    document.querySelectorAll('.toggle-desc').forEach(b => {
+      b.onclick = () => {
+        const panel = b.closest('.job-main').querySelector('.job-detail');
+        panel.classList.toggle('hidden');
+        b.textContent = panel.classList.contains('hidden') ? 'View job details' : 'Hide details';
+      };
     });
 
     document.querySelectorAll('.mark-applied').forEach(b => {
