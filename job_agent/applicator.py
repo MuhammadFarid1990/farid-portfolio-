@@ -483,7 +483,9 @@ async def apply_many(jobs: list[dict], progress=None) -> None:
         return
     total = len(jobs)
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        # Headless so no separate browser window pops up — all UX stays in the dashboard.
+        # Tradeoff: CAPTCHAs / signups can't be solved by hand, those go to needs_manual.
+        browser = await p.chromium.launch(headless=True)
         storage = SESSION_DIR / "applicator.json"
         ctx_kwargs: dict = {"viewport": {"width": 1366, "height": 900}}
         if storage.exists():
