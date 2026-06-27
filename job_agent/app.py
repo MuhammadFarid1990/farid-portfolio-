@@ -97,6 +97,14 @@ def api_run_now():
     return jsonify({"ok": True})
 
 
+@app.route("/api/purge-non-us", methods=["POST"])
+def api_purge_non_us():
+    from db import purge_non_us
+
+    n = purge_non_us()
+    return jsonify({"deleted": n})
+
+
 @app.route("/api/pull-restart", methods=["POST"])
 def api_pull_restart():
     """git pull latest, then exit with code 42 so start.bat / start.sh relaunch us."""

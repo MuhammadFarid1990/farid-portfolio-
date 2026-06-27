@@ -44,6 +44,21 @@ def get_conn() -> Iterator[sqlite3.Connection]:
 def init_db() -> None:
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+    purge_non_us()
+
+
+def purge_non_us() -> int:
+    """Delete jobs whose location matches a non-US keyword. Returns deleted count."""
+    try:
+        from agent import NON_US_KEYWORDS, _is_non_us_location
+    except Exception:
+        return 0
+    with get_conn() as conn:
+        rows = conn.execute("SELECT id, location FROM jobs").fetchall()
+        to_delete = [r["id"] for r in rows if _is_non_us_location(r["location"] or "")]
+        if to_delete:
+            conn.executemany("DELETE FROM jobs WHERE id = ?", [(i,) for i in to_delete])
+    return len(to_delete)
 
 
 def insert_job(job: dict) -> Optional[int]:
