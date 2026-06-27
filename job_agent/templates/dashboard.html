@@ -13,127 +13,167 @@
       <div class="meta">{{ jobs|length }} matches · updated {{ last_updated }}</div>
     </div>
     <div class="topbar-actions">
-      <a href="/export.csv" class="ghost-link">Download CSV</a>
+      <a href="/export.xlsx" class="ghost-link">Download Excel</a>
       <button id="purgeNonUs" class="ghost">Purge Non-US</button>
-      <button id="pullRestart" class="ghost">Pull & Restart</button>
+      <button id="pullRestart" class="ghost">Pull &amp; Restart</button>
       <button id="runNow" class="ghost">Run Search Now</button>
     </div>
   </header>
 
   <section class="stats">
-    <div class="stat">
-      <div class="stat-num">{{ stats.total }}</div>
-      <div class="stat-label">Total found</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">{{ stats.scored_above_threshold }}</div>
-      <div class="stat-label">Scored {{ threshold }}+</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">{{ stats.applied }}</div>
-      <div class="stat-label">Applied</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">{{ stats.failed }}</div>
-      <div class="stat-label">Failed</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">{{ stats.needs_manual or 0 }}</div>
-      <div class="stat-label">Needs manual</div>
-    </div>
+    <div class="stat"><div class="stat-num">{{ stats.total }}</div><div class="stat-label">Total found</div></div>
+    <div class="stat"><div class="stat-num">{{ stats.scored_above_threshold }}</div><div class="stat-label">Scored {{ threshold }}+</div></div>
+    <div class="stat"><div class="stat-num">{{ stats.applied }}</div><div class="stat-label">Applied</div></div>
+    <div class="stat"><div class="stat-num">{{ stats.failed }}</div><div class="stat-label">Failed</div></div>
+    <div class="stat"><div class="stat-num">{{ stats.needs_manual or 0 }}</div><div class="stat-label">Needs manual</div></div>
   </section>
 
-  <div class="filter-bar">
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="pending">Pending</button>
-    <button class="filter-btn" data-filter="applied">Applied</button>
-    <button class="filter-btn" data-filter="needs_manual">Needs manual</button>
-    <button class="filter-btn" data-filter="failed">Failed</button>
-  </div>
+  {% macro job_row(j, manual=False) -%}
+    {% set host = (j.url.split('/')[2] if j.url else '') %}
+    {% set hm_query = (j.title ~ ' hiring manager ' ~ j.company)|urlencode %}
+    {% set hm_url = 'https://www.google.com/search?q=site%3Alinkedin.com%2Fin+' ~ hm_query %}
+    <li class="job" data-id="{{ j.id }}" data-status="{{ j.status }}">
+      <div class="row">
+        <input type="checkbox" class="pick" {% if j.status != 'applied' %}checked{% endif %} {% if j.status == 'applied' %}disabled{% endif %} />
+        <img class="logo" src="https://www.google.com/s2/favicons?sz=64&domain={{ host }}" alt="" onerror="this.style.visibility='hidden'" />
+        <div class="job-main">
+          <div class="job-title-row">
+            <span class="title">{{ j.title }}</span>
+            <span class="score score-{{ 'high' if j.fit_score >= 85 else 'mid' }}">{{ j.fit_score }}</span>
+          </div>
+          <div class="job-sub">
+            <span class="company">{{ j.company }}</span>
+            <span class="dot">·</span>
+            <span class="loc">{{ j.location }}</span>
+            {% if j.work_type %}<span class="badge work">{{ j.work_type }}</span>{% endif %}
+            <span class="badge platform">{{ j.platform }}</span>
+          </div>
+          <div class="reason">{{ j.fit_reason }}</div>
+          <div class="job-actions">
+            <a href="{{ j.url }}" target="_blank" rel="noopener" class="btn-link">View job →</a>
+            <a href="{{ hm_url }}" target="_blank" rel="noopener" class="btn-link contact">Find hiring manager</a>
+            <button class="link-btn toggle-cover">Cover letter</button>
+            <span class="status-pill status-{{ j.status }}">{{ j.status.replace('_', ' ') }}</span>
+            {% if j.error_message %}<span class="err-detail" title="{{ j.error_message }}">why?</span>{% endif %}
+            {% if manual %}<button class="link-btn mark-applied" data-id="{{ j.id }}">Mark as applied ✓</button>{% endif %}
+          </div>
+          <pre class="cover hidden">{{ j.cover_letter }}</pre>
+        </div>
+      </div>
+    </li>
+  {%- endmacro %}
 
   <main>
-    {% if not jobs %}
-      <div class="empty">
-        <p>No matches yet.</p>
-        <p>The agent runs at 8:00 AM and 6:00 PM, or hit <strong>Run Search Now</strong>.</p>
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>1. Auto-Apply Queue <span class="count">{{ auto_apply|length }}</span></h2>
+          <p class="section-blurb">Agent applies to these using your <strong>resume.pdf</strong> + a Claude-generated cover letter, automatically. Uncheck any you don't want.</p>
+        </div>
+        <div class="section-actions">
+          <button id="selectAllAuto" class="ghost">Select All</button>
+          <button id="deselectAllAuto" class="ghost">Deselect All</button>
+          <button id="applyAutoBtn" class="primary">Apply to Selected (0)</button>
+        </div>
       </div>
-    {% else %}
-      <ul class="joblist" id="joblist">
-        {% for j in jobs %}
-        {% set host = (j.url.split('/')[2] if j.url else '') %}
-        <li class="job" data-id="{{ j.id }}" data-status="{{ j.status }}">
-          <div class="row">
-            <input type="checkbox" class="pick" {% if j.status == 'pending' %}checked{% endif %} {% if j.status in ['applied','failed','skipped','needs_manual'] %}disabled{% endif %} />
-            <img class="logo" src="https://www.google.com/s2/favicons?sz=64&domain={{ host }}" alt="" onerror="this.style.visibility='hidden'" />
-            <div class="job-main">
-              <div class="job-title-row">
-                <span class="title">{{ j.title }}</span>
-                <span class="score score-{{ 'high' if j.fit_score >= 85 else 'mid' }}">{{ j.fit_score }}</span>
-              </div>
-              <div class="job-sub">
-                <span class="company">{{ j.company }}</span>
-                <span class="dot">·</span>
-                <span class="loc">{{ j.location }}</span>
-                {% if j.work_type %}<span class="badge work">{{ j.work_type }}</span>{% endif %}
-                <span class="badge platform">{{ j.platform }}</span>
-              </div>
-              <div class="reason">{{ j.fit_reason }}</div>
-              <div class="job-actions">
-                <a href="{{ j.url }}" target="_blank" rel="noopener">View job →</a>
-                <button class="link-btn toggle-cover">Cover letter</button>
-                <span class="status-pill status-{{ j.status }}">{{ j.status.replace('_', ' ') }}</span>
-                {% if j.error_message %}<span class="err-detail" title="{{ j.error_message }}">why?</span>{% endif %}
-              </div>
-              <pre class="cover hidden">{{ j.cover_letter }}</pre>
-            </div>
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+      {% if auto_apply %}
+        <ul class="joblist" id="auto-list">
+          {% for j in auto_apply %}{{ job_row(j) }}{% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty"><p>No jobs queued for auto-apply. Run a search or check the manual section.</p></div>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>2. Manual Apply Required <span class="count">{{ manual|length }}</span></h2>
+          <p class="section-blurb">Agent couldn't auto-submit these (CAPTCHA, custom form, signup wall). <strong>Click "View job" and apply by hand</strong>, then hit "Mark as applied" to track it.</p>
+        </div>
+      </div>
+      {% if manual %}
+        <ul class="joblist" id="manual-list">
+          {% for j in manual %}{{ job_row(j, manual=True) }}{% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty"><p>No manual-apply jobs yet.</p></div>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>3. Hiring Manager Contacts <span class="count">{{ companies|length }}</span></h2>
+          <p class="section-blurb">One row per company. Click the link to search LinkedIn for the hiring manager / recruiter. Add their name/email in the Excel export.</p>
+        </div>
+      </div>
+      {% if companies %}
+        <table class="contacts">
+          <thead><tr><th>Company</th><th>Roles</th><th>Hiring manager search</th></tr></thead>
+          <tbody>
+            {% for c in companies %}
+            {% set q = ('"' ~ c.name ~ '" ("hiring manager" OR "recruiter" OR "talent acquisition") data')|urlencode %}
+            <tr>
+              <td><strong>{{ c.name }}</strong></td>
+              <td>{{ c.roles|join(' · ') }}</td>
+              <td>
+                <a target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3Alinkedin.com%2Fin+{{ q }}">LinkedIn search →</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty"><p>No companies yet.</p></div>
+      {% endif %}
+    </section>
   </main>
 
-  <footer class="actionbar">
-    <div class="left">
-      <button id="selectAll" class="ghost">Select All</button>
-      <button id="deselectAll" class="ghost">Deselect All</button>
-      <span id="selCount" class="meta">0 selected</span>
-    </div>
-    <div class="right">
-      <div class="progress-wrap"><div class="progress" id="progress"></div></div>
-      <button id="applyBtn" class="primary">Apply to Selected (0)</button>
-    </div>
-  </footer>
-
   <script>
-    const selCount = document.getElementById('selCount');
-    const applyBtn = document.getElementById('applyBtn');
-    const progress = document.getElementById('progress');
-
-    function selectedIds() {
-      return [...document.querySelectorAll('.pick:checked:not(:disabled)')]
+    function selectedIds(listId) {
+      return [...document.querySelectorAll('#' + listId + ' .pick:checked:not(:disabled)')]
         .map(cb => +cb.closest('.job').dataset.id);
     }
-    function refreshCounts() {
-      const n = selectedIds().length;
-      selCount.textContent = n + ' selected';
-      applyBtn.textContent = 'Apply to Selected (' + n + ')';
-      applyBtn.disabled = n === 0;
+    function refreshAutoCount() {
+      const n = selectedIds('auto-list').length;
+      const btn = document.getElementById('applyAutoBtn');
+      btn.textContent = 'Apply to Selected (' + n + ')';
+      btn.disabled = n === 0;
     }
-    document.querySelectorAll('.pick').forEach(cb => cb.addEventListener('change', refreshCounts));
-    document.getElementById('selectAll').onclick = () => {
-      document.querySelectorAll('.pick:not(:disabled)').forEach(cb => cb.checked = true);
-      refreshCounts();
+    document.querySelectorAll('#auto-list .pick').forEach(cb => cb.addEventListener('change', refreshAutoCount));
+
+    const sa = document.getElementById('selectAllAuto');
+    if (sa) sa.onclick = () => {
+      document.querySelectorAll('#auto-list .pick:not(:disabled)').forEach(cb => cb.checked = true);
+      refreshAutoCount();
     };
-    document.getElementById('deselectAll').onclick = () => {
-      document.querySelectorAll('.pick:not(:disabled)').forEach(cb => cb.checked = false);
-      refreshCounts();
+    const dsa = document.getElementById('deselectAllAuto');
+    if (dsa) dsa.onclick = () => {
+      document.querySelectorAll('#auto-list .pick').forEach(cb => cb.checked = false);
+      refreshAutoCount();
     };
+
     document.querySelectorAll('.toggle-cover').forEach(b => {
       b.onclick = () => b.closest('.job-main').querySelector('.cover').classList.toggle('hidden');
     });
-    applyBtn.onclick = async () => {
-      const ids = selectedIds();
+
+    document.querySelectorAll('.mark-applied').forEach(b => {
+      b.onclick = async () => {
+        const id = +b.dataset.id;
+        b.disabled = true;
+        await fetch('/api/mark-applied', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({job_id: id}),
+        });
+        location.reload();
+      };
+    });
+
+    const applyBtn = document.getElementById('applyAutoBtn');
+    if (applyBtn) applyBtn.onclick = async () => {
+      const ids = selectedIds('auto-list');
       if (!ids.length) return;
       applyBtn.disabled = true;
       const r = await fetch('/api/apply', {
@@ -148,6 +188,7 @@
       }
       pollStatus();
     };
+
     document.getElementById('runNow').onclick = async () => {
       await fetch('/api/run-now', {method: 'POST'});
       alert('Search started. Refresh in a couple minutes.');
@@ -163,16 +204,13 @@
       const btn = document.getElementById('pullRestart');
       btn.disabled = true; btn.textContent = 'Restarting...';
       try {
-        const r = await fetch('/api/pull-restart', {method: 'POST'});
-        const data = await r.json();
-        console.log(data.git_output);
-        // Wait for server to come back, then reload.
+        await fetch('/api/pull-restart', {method: 'POST'});
         setTimeout(() => {
           const check = setInterval(async () => {
             try {
               const r2 = await fetch('/status');
               if (r2.ok) { clearInterval(check); location.reload(); }
-            } catch (e) { /* still down */ }
+            } catch (e) {}
           }, 1500);
         }, 2000);
       } catch (e) {
@@ -184,46 +222,12 @@
     async function pollStatus() {
       const r = await fetch('/api/jobs');
       const data = await r.json();
-      // update each row
-      data.jobs.forEach(j => {
-        const li = document.querySelector('.job[data-id="' + j.id + '"]');
-        if (!li) return;
-        li.dataset.status = j.status;
-        const pill = li.querySelector('.status-pill');
-        if (pill) {
-          pill.className = 'status-pill status-' + j.status;
-          pill.textContent = j.status;
-        }
-        if (j.status !== 'pending') {
-          const cb = li.querySelector('.pick');
-          if (cb) cb.disabled = true;
-        }
-      });
-      // progress
       const st = data.apply_state;
-      if (st && st.total > 0) {
-        const pct = Math.round((st.done / st.total) * 100);
-        progress.style.width = pct + '%';
-      }
-      if (st && st.running) {
-        setTimeout(pollStatus, 3000);
-      } else {
-        applyBtn.disabled = selectedIds().length === 0;
-      }
+      if (st && st.running) setTimeout(pollStatus, 3000);
+      else location.reload();
     }
 
-    refreshCounts();
-
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const f = btn.dataset.filter;
-        document.querySelectorAll('.job').forEach(li => {
-          li.style.display = (f === 'all' || li.dataset.status === f) ? '' : 'none';
-        });
-      };
-    });
+    refreshAutoCount();
   </script>
 </body>
 </html>

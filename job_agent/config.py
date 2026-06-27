@@ -60,8 +60,8 @@ WORK_TYPES = ["remote", "part-time", "internship"]
 
 # Pipeline knobs
 MIN_FIT_SCORE = 25  # Claude auto-scores irrelevant jobs at 0-20 via hard rules in the prompt; 25+ = relevant
-APPLY_DELAY_SECONDS = 45
-MAX_JOBS_PER_RUN = 50
+APPLY_DELAY_SECONDS = 30
+MAX_JOBS_PER_RUN = 200
 AUTO_APPLY = True  # if True, pipeline applies right after scoring with no dashboard click
 
 # Which platforms to scrape.

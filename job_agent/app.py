@@ -1,7 +1,6 @@
 """Flask dashboard. http://localhost:5000"""
 from __future__ import annotations
 
-import csv
 import io
 import logging
 import os
@@ -19,7 +18,6 @@ from db import get_jobs, init_db, stats, update_status
 log = logging.getLogger(__name__)
 app = Flask(__name__)
 
-# Single thread guard so we don't fire two batch applies in parallel.
 _apply_lock = threading.Lock()
 _apply_state = {"running": False, "done": 0, "total": 0, "current": None}
 
@@ -43,13 +41,42 @@ def _search_worker() -> None:
         log.exception("manual run failed")
 
 
+def _group_jobs(jobs: list[dict]) -> dict:
+    auto_apply: list[dict] = []
+    manual: list[dict] = []
+    for j in jobs:
+        s = j.get("status", "pending")
+        if s in ("pending", "approved"):
+            auto_apply.append(j)
+        elif s in ("failed", "needs_manual"):
+            manual.append(j)
+    # Companies: dedup by lowercased name, list roles
+    company_map: dict[str, dict] = {}
+    for j in jobs:
+        c = (j.get("company") or "").strip()
+        if not c:
+            continue
+        key = c.lower()
+        if key not in company_map:
+            company_map[key] = {"name": c, "roles": []}
+        title = (j.get("title") or "").strip()
+        if title and title not in company_map[key]["roles"]:
+            company_map[key]["roles"].append(title)
+    companies = sorted(company_map.values(), key=lambda x: x["name"].lower())
+    return {"auto_apply": auto_apply, "manual": manual, "companies": companies}
+
+
 @app.route("/")
 def index():
     jobs = get_jobs(min_score=MIN_FIT_SCORE)
+    grouped = _group_jobs(jobs)
     s = stats()
     return render_template(
         "dashboard.html",
         jobs=jobs,
+        auto_apply=grouped["auto_apply"],
+        manual=grouped["manual"],
+        companies=grouped["companies"],
         stats=s,
         threshold=MIN_FIT_SCORE,
         last_updated=datetime.now().strftime("%b %d %Y %I:%M %p"),
@@ -91,6 +118,16 @@ def api_skip():
     return jsonify({"ok": True})
 
 
+@app.route("/api/mark-applied", methods=["POST"])
+def api_mark_applied():
+    data = request.get_json(silent=True) or {}
+    job_id = int(data.get("job_id", 0))
+    if not job_id:
+        return jsonify({"error": "no job_id"}), 400
+    update_status(job_id, "applied")
+    return jsonify({"ok": True})
+
+
 @app.route("/api/run-now", methods=["POST"])
 def api_run_now():
     threading.Thread(target=_search_worker, daemon=True).start()
@@ -107,7 +144,6 @@ def api_purge_non_us():
 
 @app.route("/api/pull-restart", methods=["POST"])
 def api_pull_restart():
-    """git pull latest, then exit with code 42 so start.bat / start.sh relaunch us."""
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     try:
         result = subprocess.run(
@@ -134,25 +170,52 @@ def status():
     return jsonify({"apply_state": _apply_state, "stats": stats()})
 
 
-@app.route("/export.csv")
-def export_csv():
+@app.route("/export.xlsx")
+def export_xlsx():
+    from openpyxl import Workbook
+
     jobs = get_jobs(min_score=0)
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow([
-        "title",
-        "company",
-        "location",
-        "work_type",
-        "platform",
-        "fit_score",
-        "status",
-        "applied_at",
-        "fit_reason",
-        "url",
+    grouped = _group_jobs(jobs)
+
+    wb = Workbook()
+    # Sheet 1: Auto-Apply
+    ws1 = wb.active
+    ws1.title = "Auto-Apply"
+    _write_jobs_sheet(ws1, grouped["auto_apply"])
+    # Sheet 2: Manual
+    ws2 = wb.create_sheet("Manual Apply")
+    _write_jobs_sheet(ws2, grouped["manual"])
+    # Sheet 3: Hiring Manager Contacts
+    ws3 = wb.create_sheet("Hiring Managers")
+    ws3.append(["Company", "Roles", "LinkedIn search URL", "Contact name (fill in)", "Contact email", "Notes"])
+    import urllib.parse as up
+    for c in grouped["companies"]:
+        q = up.quote(f'"{c["name"]}" ("hiring manager" OR "recruiter" OR "talent acquisition") data')
+        url = f"https://www.google.com/search?q=site%3Alinkedin.com%2Fin+{q}"
+        ws3.append([c["name"], " · ".join(c["roles"]), url, "", "", ""])
+    # Sheet 4: Applied (history)
+    applied = [j for j in jobs if j.get("status") == "applied"]
+    ws4 = wb.create_sheet("Applied (history)")
+    _write_jobs_sheet(ws4, applied)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = f"job_agent_{datetime.now().strftime('%Y-%m-%d_%H%M')}.xlsx"
+    return Response(
+        buf.read(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
+def _write_jobs_sheet(ws, jobs: list[dict]) -> None:
+    ws.append([
+        "Title", "Company", "Location", "Work type", "Platform",
+        "Fit score", "Status", "Applied at", "Reason", "URL",
     ])
     for j in jobs:
-        writer.writerow([
+        ws.append([
             j.get("title", ""),
             j.get("company", ""),
             j.get("location", ""),
@@ -164,12 +227,6 @@ def export_csv():
             (j.get("fit_reason") or "").replace("\n", " "),
             j.get("url", ""),
         ])
-    fname = f"job_agent_{datetime.now().strftime('%Y-%m-%d_%H%M')}.csv"
-    return Response(
-        buf.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
-    )
 
 
 def serve() -> None:

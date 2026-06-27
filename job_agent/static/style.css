@@ -157,6 +157,61 @@ main { padding: 0 32px 24px; }
 .filter-btn:hover { color: var(--text); }
 .filter-btn.active { background: var(--surface-2); color: var(--text); border-color: var(--accent); }
 
+.section { padding: 18px 32px 8px; border-top: 6px solid var(--surface-2); margin-top: 16px; }
+.section:first-of-type { border-top: none; margin-top: 0; }
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.section-head h2 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.count {
+  display: inline-block;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+.section-blurb {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+  max-width: 700px;
+}
+.section-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+.btn-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+}
+.btn-link:hover { text-decoration: underline; }
+.btn-link.contact { color: var(--primary); }
+
+.contacts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.contacts th, .contacts td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.contacts th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.contacts tbody tr:hover { background: var(--surface-2); }
+.contacts a { color: var(--accent); text-decoration: none; }
+.contacts a:hover { text-decoration: underline; }
+
 .cover {
   margin-top: 10px;
   background: var(--bg);
