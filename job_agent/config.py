@@ -36,17 +36,26 @@ EEOC_DECLINE = True  # auto-pick "prefer not to answer" on demographic questions
 
 # Job search targeting
 TARGET_ROLES = [
-    # Broad role keywords — APIs match these as substrings in titles, so they
-    # need to be common phrases. Claude's hard rules (in scorer.py) filter out
-    # senior / full-time-only / non-US / wrong-field roles.
     "data analyst",
     "data scientist",
     "data science",
+    "data engineer",
     "machine learning",
+    "ml engineer",
     "ai engineer",
     "business intelligence",
     "analytics engineer",
+    "business analyst",
+    "quantitative analyst",
+    "research analyst",
+    "nlp engineer",
+    "computer vision",
+    "data analytics",
+    "data intern",
+    "analyst intern",
+    "scientist intern",
     "intern",
+    "co-op",
 ]
 
 LOCATIONS = [
@@ -59,7 +68,7 @@ LOCATIONS = [
 WORK_TYPES = ["remote", "part-time", "internship"]
 
 # Pipeline knobs
-MIN_FIT_SCORE = 25  # Claude auto-scores irrelevant jobs at 0-20 via hard rules in the prompt; 25+ = relevant
+MIN_FIT_SCORE = 20  # Anything 20+ appears in dashboard; hard rejects (wrong field/country/senior) score 0-15
 APPLY_DELAY_SECONDS = 30
 MAX_JOBS_PER_RUN = 200
 AUTO_APPLY = True  # if True, pipeline applies right after scoring with no dashboard click
