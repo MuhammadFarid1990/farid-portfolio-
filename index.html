@@ -399,6 +399,46 @@
     100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
   }
 
+  /* Embedded video demo */
+  .video-demo {
+    margin-top: 40px;
+  }
+  .video-caption {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+    margin-bottom: 14px;
+    padding: 6px 14px;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  .video-caption .video-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: livePulse 1.8s ease-out infinite;
+  }
+  .video-frame {
+    background: #0a1f44;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 30px 80px rgba(10,31,68,0.28);
+    overflow: hidden;
+  }
+  .video-frame video {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    background: #f4f6fb;
+  }
+
   /* Analysis demo (Amaar thinking pane) */
   .analysis-demo {
     margin-top: 32px;
@@ -961,26 +1001,22 @@
       </div>
     </div>
 
-    <div class="analysis-demo reveal">
-      <div class="analysis-header">
-        <div class="analysis-dots"><span></span><span></span><span></span></div>
-        <div class="analysis-title">amaar.thinking() — Saturday brief</div>
-        <div class="analysis-live">Live</div>
+    <div class="video-demo reveal">
+      <div class="video-caption">
+        <span class="video-dot"></span>
+        <span>Watch: operator asks Amaar for next week's revenue forecast.</span>
       </div>
-      <div class="analysis-body">
-<div class="line"><span class="ts">[08:14:22]</span> <span class="arr">→</span> Pulling NOAA forecast for Austell, GA</div>
-<div class="line"><span class="ts">[08:14:23]</span> <span class="ok">✓</span> 7-day forecast retrieved <span class="muted">— Sat peak 89°F, clear</span></div>
-<div class="line"><span class="ts">[08:14:23]</span> <span class="arr">→</span> Loading 89 days of Slick City history from ledger</div>
-<div class="line"><span class="ts">[08:14:24]</span> <span class="ok">✓</span> Cross-referencing IAAPA 2024 baselines &amp; Cobb school calendar</div>
-<div class="line"><span class="ts">[08:14:25]</span> <span class="arr">→</span> Running visitor projection...</div>
-<div class="line">              <span class="key">base</span> 224/day <span class="muted">×</span> <span class="key">weekend</span> 3.1 <span class="muted">×</span> <span class="key">weather</span> 1.18</div>
-<div class="line">              <span class="muted">=</span> <span class="val">819 guests</span> <span class="muted">(±62)</span></div>
-<div class="line"><span class="ts">[08:14:26]</span> <span class="arr">→</span> Staffing call vs Saturday baseline:</div>
-<div class="line">              Floor <span class="val">8</span> <span class="ok">(+2)</span>   Lifeguards <span class="val">5</span>   Party hosts <span class="val">5</span> <span class="ok">(+1)</span>   Cafe <span class="val">3</span>   Front desk <span class="val">2</span></div>
-<div class="line"><span class="ts">[08:14:27]</span> <span class="ok">✓</span> Budget check: <span class="val">$2,847</span> wages <span class="muted">vs</span> $3,100 cap</div>
-<div class="line"><span class="ts">[08:14:27]</span> <span class="arr">→</span> Supply watch: <span class="val">wristbands 22%</span>, <span class="val">cafe cups 41%</span> <span class="muted">— reorder both</span></div>
-<div class="line"><span class="ts">[08:14:28]</span> <span class="arr">→</span> Reviews: 3 new since yesterday, sentiment <span class="val">+0.42</span> <span class="muted">(theme: party host praise)</span></div>
-<div class="line"><span class="final">[08:14:28] Recommendation posted to Chase's brief.<span class="analysis-cursor"></span></span></div>
+      <div class="video-frame">
+        <video
+          src="slick-city-demo.webm"
+          poster=""
+          autoplay
+          muted
+          loop
+          playsinline
+          controls
+          preload="auto"
+        ></video>
       </div>
     </div>
 
