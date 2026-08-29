@@ -337,6 +337,182 @@
     font-weight: 500;
   }
 
+  /* Live CTA */
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: -32px;
+    margin-bottom: 40px;
+  }
+  .live-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .live-cta:hover {
+    text-decoration: none;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(10,61,145,0.10);
+  }
+  .live-cta .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+    animation: livePulse 1.8s ease-out infinite;
+  }
+  .live-cta .live-arrow {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .live-cta-alt {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .live-cta-alt:hover {
+    color: white;
+    border-color: var(--accent);
+    box-shadow: 0 8px 22px rgba(10,61,145,0.25);
+  }
+  .live-cta-alt .play-icon {
+    font-size: 10px;
+    color: white;
+    line-height: 1;
+  }
+  @keyframes livePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  }
+
+  /* Analysis demo (Amaar thinking pane) */
+  .analysis-demo {
+    margin-top: 32px;
+    background: #0b1d3f;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(10,31,68,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .analysis-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    background: #071633;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .analysis-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .analysis-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.16);
+  }
+  .analysis-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.05em;
+    flex: 1;
+    text-align: center;
+  }
+  .analysis-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: #22c55e;
+    text-transform: uppercase;
+  }
+  .analysis-live::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: livePulse 1.8s ease-out infinite;
+  }
+  .analysis-body {
+    padding: 28px 28px 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.85;
+    color: #cbd5e8;
+  }
+  .analysis-body .line {
+    opacity: 0;
+    transform: translateY(4px);
+    white-space: pre-wrap;
+  }
+  .analysis-demo.visible .analysis-body .line {
+    animation: lineIn 0.35s ease forwards;
+  }
+  .analysis-demo.visible .analysis-body .line:nth-child(1)  { animation-delay: 0.10s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(2)  { animation-delay: 0.50s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(3)  { animation-delay: 0.90s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(4)  { animation-delay: 1.30s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(5)  { animation-delay: 1.70s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(6)  { animation-delay: 2.10s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(7)  { animation-delay: 2.50s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(8)  { animation-delay: 2.90s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(9)  { animation-delay: 3.30s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(10) { animation-delay: 3.70s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(11) { animation-delay: 4.10s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(12) { animation-delay: 4.50s; }
+  .analysis-demo.visible .analysis-body .line:nth-child(13) { animation-delay: 4.90s; }
+  @keyframes lineIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .analysis-body .ts   { color: #6b8bbf; }
+  .analysis-body .ok   { color: #22c55e; }
+  .analysis-body .arr  { color: #f5a524; }
+  .analysis-body .key  { color: #7fb8ff; }
+  .analysis-body .val  { color: #ffffff; }
+  .analysis-body .muted{ color: #6b7d9e; }
+  .analysis-body .final{ color: #ffffff; font-weight: 500; }
+  .analysis-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    vertical-align: -2px;
+    background: #22c55e;
+    margin-left: 6px;
+    animation: blink 1s steps(2) infinite;
+    opacity: 0;
+  }
+  .analysis-demo.visible .analysis-cursor {
+    animation: blink 1s steps(2) infinite, cursorIn 0.35s ease 5.10s forwards;
+  }
+  @keyframes cursorIn { to { opacity: 1; } }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @media (max-width: 720px) {
+    .analysis-body { padding: 22px 18px 26px; font-size: 12px; line-height: 1.8; }
+    .analysis-header { padding: 12px 16px; }
+    .analysis-title { font-size: 11px; }
+  }
+
   .schedule-callout {
     margin-top: 48px;
     text-align: center;
@@ -723,6 +899,17 @@
       <div class="section-eyebrow">Slick City Action Park</div>
       <h2 class="section-heading">An amusement park that thinks for itself</h2>
       <p class="section-lede">A full staff, a flood of guests, weather that rewrites the plan by the hour. I gave the place a brain backed by data.</p>
+      <div class="cta-row">
+        <a class="live-cta" href="https://slickcity-portal.vercel.app" target="_blank" rel="noopener">
+          <span class="live-dot"></span>
+          <span>Open the live portal</span>
+          <span class="live-arrow">→</span>
+        </a>
+        <a class="live-cta live-cta-alt" href="slick-city-demo.webm" target="_blank" rel="noopener">
+          <span class="play-icon">▶</span>
+          <span>Watch 15-second demo</span>
+        </a>
+      </div>
     </div>
 
     <div class="feature-cards">
@@ -771,6 +958,29 @@
           <div class="schedule-row"><span class="schedule-time">14:00 — 22:00</span><span class="schedule-role">Lifeguards</span><span class="schedule-count">5</span></div>
           <div class="schedule-row"><span class="schedule-time">15:00 — 22:00</span><span class="schedule-role">Front desk</span><span class="schedule-count">2</span></div>
         </div>
+      </div>
+    </div>
+
+    <div class="analysis-demo reveal">
+      <div class="analysis-header">
+        <div class="analysis-dots"><span></span><span></span><span></span></div>
+        <div class="analysis-title">amaar.thinking() — Saturday brief</div>
+        <div class="analysis-live">Live</div>
+      </div>
+      <div class="analysis-body">
+<div class="line"><span class="ts">[08:14:22]</span> <span class="arr">→</span> Pulling NOAA forecast for Austell, GA</div>
+<div class="line"><span class="ts">[08:14:23]</span> <span class="ok">✓</span> 7-day forecast retrieved <span class="muted">— Sat peak 89°F, clear</span></div>
+<div class="line"><span class="ts">[08:14:23]</span> <span class="arr">→</span> Loading 89 days of Slick City history from ledger</div>
+<div class="line"><span class="ts">[08:14:24]</span> <span class="ok">✓</span> Cross-referencing IAAPA 2024 baselines &amp; Cobb school calendar</div>
+<div class="line"><span class="ts">[08:14:25]</span> <span class="arr">→</span> Running visitor projection...</div>
+<div class="line">              <span class="key">base</span> 224/day <span class="muted">×</span> <span class="key">weekend</span> 3.1 <span class="muted">×</span> <span class="key">weather</span> 1.18</div>
+<div class="line">              <span class="muted">=</span> <span class="val">819 guests</span> <span class="muted">(±62)</span></div>
+<div class="line"><span class="ts">[08:14:26]</span> <span class="arr">→</span> Staffing call vs Saturday baseline:</div>
+<div class="line">              Floor <span class="val">8</span> <span class="ok">(+2)</span>   Lifeguards <span class="val">5</span>   Party hosts <span class="val">5</span> <span class="ok">(+1)</span>   Cafe <span class="val">3</span>   Front desk <span class="val">2</span></div>
+<div class="line"><span class="ts">[08:14:27]</span> <span class="ok">✓</span> Budget check: <span class="val">$2,847</span> wages <span class="muted">vs</span> $3,100 cap</div>
+<div class="line"><span class="ts">[08:14:27]</span> <span class="arr">→</span> Supply watch: <span class="val">wristbands 22%</span>, <span class="val">cafe cups 41%</span> <span class="muted">— reorder both</span></div>
+<div class="line"><span class="ts">[08:14:28]</span> <span class="arr">→</span> Reviews: 3 new since yesterday, sentiment <span class="val">+0.42</span> <span class="muted">(theme: party host praise)</span></div>
+<div class="line"><span class="final">[08:14:28] Recommendation posted to Chase's brief.<span class="analysis-cursor"></span></span></div>
       </div>
     </div>
 
