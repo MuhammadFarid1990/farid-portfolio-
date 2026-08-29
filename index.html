@@ -450,6 +450,64 @@
     letter-spacing: 0.02em;
   }
 
+  /* Writing / Publications */
+  .writing { background: white; }
+  .writing-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+  .writing-item {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 32px;
+    align-items: baseline;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease;
+  }
+  .writing-item:hover {
+    background: #fafbfd;
+    text-decoration: none;
+  }
+  .writing-item:hover .writing-title { color: var(--accent); }
+  .writing-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .writing-title {
+    font-family: 'Newsreader', serif;
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    transition: color 0.15s ease;
+  }
+  .writing-venue {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .writing-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--accent);
+    padding-left: 8px;
+  }
+  @media (max-width: 720px) {
+    .writing-item {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 22px 0;
+    }
+    .writing-arrow { display: none; }
+  }
+
   /* Off the Clock */
   .off {
     background: #fafbfd;
@@ -599,6 +657,7 @@
       <a href="#work">Work</a>
       <a href="#projects">Projects</a>
       <a href="#research">Research</a>
+      <a href="#writing">Writing</a>
       <a href="#off">Off the Clock</a>
       <a href="#contact">Contact</a>
     </div>
@@ -799,6 +858,42 @@
         <p class="research-body">Research on reshoring back office operations — where AI agents lower the cost of keeping administrative and support work in the United States, and what conditions need to hold for those gains to show up in communities, not just on balance sheets.</p>
         <div class="research-partner"></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="writing" class="writing">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">Writing</div>
+      <h2 class="section-heading">Published thinking.</h2>
+      <p class="section-lede">Pieces on multi-agent systems, ocean stewardship, and the tools of the work. Written with the ArtSciLab at UT Dallas.</p>
+    </div>
+    <div class="writing-list reveal">
+      <a class="writing-item" href="https://artscilab.utdallas.edu/2026/08/10/agents-over-oceans-volume-2/" target="_blank" rel="noopener">
+        <div class="writing-date">AUG 2026</div>
+        <div>
+          <div class="writing-title">Agents Over Oceans: Volume 2</div>
+          <div class="writing-venue">ArtSciLab, UT Dallas</div>
+        </div>
+        <div class="writing-arrow">→</div>
+      </a>
+      <a class="writing-item" href="https://artscilab.utdallas.edu/2026/08/10/ai-shepherd-denewsletter/" target="_blank" rel="noopener">
+        <div class="writing-date">AUG 2026</div>
+        <div>
+          <div class="writing-title">AI Shepherd — DE Newsletter</div>
+          <div class="writing-venue">ArtSciLab, UT Dallas</div>
+        </div>
+        <div class="writing-arrow">→</div>
+      </a>
+      <a class="writing-item" href="https://artscilab.utdallas.edu/2026/07/18/agents-over-oceans/" target="_blank" rel="noopener">
+        <div class="writing-date">JUL 2026</div>
+        <div>
+          <div class="writing-title">Agents Over Oceans</div>
+          <div class="writing-venue">ArtSciLab, UT Dallas</div>
+        </div>
+        <div class="writing-arrow">→</div>
+      </a>
     </div>
   </div>
 </section>
